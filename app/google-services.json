@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "264990815358",
+    "firebase_url": "https://bcards-ca5d4.firebaseio.com",
+    "project_id": "bcards-ca5d4",
+    "storage_bucket": "bcards-ca5d4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:264990815358:android:87193639a3f1c37d",
+        "android_client_info": {
+          "package_name": "com.dharanaditya.bcards"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "264990815358-kgpdr75fnu98oshfd0p6inbsjle0qfgn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dharanaditya.bcards",
+            "certificate_hash": "5f1131af4cc4059970228f5bbf01a00615b692b1"
+          }
+        },
+        {
+          "client_id": "264990815358-vgc2s9ba533bhq0f4qb28nfitfojk1o7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJ5VnwXLahmbIarLUWi_M8BYaIoWP-RMI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "264990815358-vgc2s9ba533bhq0f4qb28nfitfojk1o7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
