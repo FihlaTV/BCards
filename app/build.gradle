@@ -28,6 +28,7 @@ dependencies {
     //    compile 'com.google.firebase:firebase-core:11.2.0'
 //    compile 'com.google.firebase:firebase-auth:11.2.0'
     //    compile 'com.firebaseui:firebase-ui-auth:2.3.0'
+    compile 'com.google.firebase:firebase-messaging:11.2.0'
     compile 'com.android.support:appcompat-v7:26.0.1'
     compile 'com.android.support:design:26.0.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'

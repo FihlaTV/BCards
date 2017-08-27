@@ -14,7 +14,8 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -34,7 +35,9 @@
                     android:scheme="http" />
             </intent-filter>
         </activity>
-        <activity android:name=".WebViewActivity"></activity>
+        <activity
+            android:name=".WebViewActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>
