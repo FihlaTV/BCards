@@ -7,12 +7,14 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.dharanaditya.bcards.api.LinkedInService;
 import com.dharanaditya.bcards.model.AccessCredentials;
@@ -35,23 +37,26 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
     // TODO Remove Log TAG Before open sourcing
     private static final String TAG = MainActivity.class.getSimpleName();
-    DatabaseReference reference;
+    private DatabaseReference databaseReference;
+    private FirebaseDatabase firebaseDatabase;
     private Retrofit retrofit;
     private RecyclerView bcardsRecyclerView;
     private ProgressBar progressBar;
+    private Toolbar toolbar;
     private FirebaseRecyclerAdapter<BCard, BCardViewHolder> bCardFirebaseAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         setupUi();
-
-        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
-        reference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
-
-        setupRecyclerViewAdapter(reference);
+        setSupportActionBar(toolbar);
+        if (firebaseDatabase == null) {
+            firebaseDatabase = FirebaseDatabase.getInstance();
+            firebaseDatabase.setPersistenceEnabled(true);
+        }
+        databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
+        setupRecyclerViewAdapter(databaseReference);
 
 //        TODO Authenticate User
     }
@@ -60,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
         bcardsRecyclerView = (RecyclerView) findViewById(R.id.rv_bcards_list);
         bcardsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         progressBar = (ProgressBar) findViewById(R.id.pb_loding);
+        toolbar = (Toolbar) findViewById(R.id.tb_main_toolbar);
+
     }
 
     @Override
@@ -136,15 +143,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void requestAuthCode(View view) {
-        Uri reqestCode = Uri.parse(LinkedInService.REQUEST_AUTH_CODE_URL)
-                .buildUpon()
-                .appendQueryParameter(LinkedInService.PARAM_RESPONSE_TYPE, getString(R.string.response_type))
-                .appendQueryParameter(LinkedInService.PARAM_CLIENT_ID, getString(R.string.client_id))
-                .appendQueryParameter(LinkedInService.PARAM_REDIRECT_URL, getString(R.string.redirect_url))
-                .build();
-        Intent openBrowser = new Intent(Intent.ACTION_VIEW, reqestCode);
-        if (openBrowser.resolveActivity(getPackageManager()) != null) {
-            startActivity(openBrowser);
+        if (NetworkUtils.isConnected(getApplicationContext())) {
+            Uri requestUrl = Uri.parse(LinkedInService.REQUEST_AUTH_CODE_URL)
+                    .buildUpon()
+                    .appendQueryParameter(LinkedInService.PARAM_RESPONSE_TYPE, getString(R.string.response_type))
+                    .appendQueryParameter(LinkedInService.PARAM_CLIENT_ID, getString(R.string.client_id))
+                    .appendQueryParameter(LinkedInService.PARAM_REDIRECT_URL, getString(R.string.redirect_url))
+                    .build();
+            Intent openBrowser = new Intent(Intent.ACTION_VIEW, requestUrl);
+            if (openBrowser.resolveActivity(getPackageManager()) != null) {
+                startActivity(openBrowser);
+            }
+        } else {
+            Toast.makeText(this, "Please Connect to the Internet", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -195,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Log.d(TAG, "onResponse: BCard -> " + response.body().toString());
                     progressBar.setVisibility(View.INVISIBLE);
-                    reference.push().setValue(response.body());
+                    databaseReference.push().setValue(response.body());
                     // TODO notify User
                 } else {
 //                    TODO Handle
