@@ -91,4 +91,17 @@ public class BCard {
     public void setPublicProfileUrl(String publicProfileUrl) {
         this.publicProfileUrl = publicProfileUrl;
     }
+
+    @Override
+    public String toString() {
+        return "BCard{" +
+                "firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", emailAddress='" + emailAddress + '\'' +
+                ", headline='" + headline + '\'' +
+                ", pictureUrl='" + pictureUrl + '\'' +
+                ", publicProfileUrl='" + publicProfileUrl + '\'' +
+                ", id='" + id + '\'' +
+                '}';
+    }
 }
