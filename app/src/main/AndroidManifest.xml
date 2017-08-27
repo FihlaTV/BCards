@@ -19,6 +19,17 @@
             </intent-filter>
 
             <!--TODO : Add Intent Filter to Catch the API Call BACK-->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="com.dharanaditya.bcards"
+                    android:path="/callback"
+                    android:scheme="http" />
+            </intent-filter>
         </activity>
     </application>
 

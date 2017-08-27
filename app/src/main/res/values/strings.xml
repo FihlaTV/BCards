@@ -1,4 +1,9 @@
 <resources>
     <!--TODO Extract hardcoded values-->
     <string name="app_name">B Cards</string>
+    <string name="grant_type">authorization_code</string>
+    <string name="redirect_url">http://com.dharanaditya.bcards/callback</string>
+    <string name="client_id">816dfsm481zdzf</string>
+    <string name="client_secret">RJKB2yNH3dIsbQXM</string>
+    <string name="response_type">code</string>
 </resources>
