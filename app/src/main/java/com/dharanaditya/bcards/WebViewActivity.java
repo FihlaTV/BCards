@@ -36,17 +36,15 @@ public class WebViewActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // TODO Hack the logic
                 return !url.contains("www.linkedin.com") && shouldOverrideUrlLoading(url);
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                Log.d(TAG, "shouldOverrideUrlLoading: " + uri.getHost());
-                if (request.getUrl().getHost().equals("www.linkedin.com")) {
-                    return false;
-                }
-                return shouldOverrideUrlLoading(uri.toString());
+//                TODO Hack the logic -> it return false for all other site, but returns true when url is redirect url
+                return !request.getUrl().getHost().equals("www.linkedin.com") && shouldOverrideUrlLoading(uri.toString());
             }
 
             private boolean shouldOverrideUrlLoading(final String url) {

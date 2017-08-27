@@ -12,7 +12,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -53,13 +52,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.d(TAG, "onCreate: " + getIntent().toString());
         setupUi();
         setSupportActionBar(toolbar);
-        if (FirebaseDatabase.getInstance() == null) {
-            Log.d(TAG, "onCreate: Firebase Peristance");
-            FirebaseDatabase.getInstance().setPersistenceEnabled(true);
-        }
         firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         setupRecyclerViewAdapter(databaseReference);
@@ -78,17 +72,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-//        TODO
-//        handleIntent(getIntent());
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-//        TODO
-        Log.d(TAG, "onNewIntent: " + intent.toString());
-        handleIntent(intent);
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -157,11 +142,6 @@ public class MainActivity extends AppCompatActivity {
         }).attachToRecyclerView(bcardsRecyclerView);
     }
 
-    private void invalidateIntent() {
-        getIntent().setData(null);
-        getIntent().setAction("");
-    }
-
     public void requestAuthCode(View view) {
         if (NetworkUtils.isConnected(getApplicationContext())) {
             Uri requestUrl = Uri.parse(LinkedInService.REQUEST_AUTH_CODE_URL)
@@ -204,14 +184,12 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             progressBar.setVisibility(View.INVISIBLE);
                             showErrorDialog(MainActivity.this, response.message(), response.code());
-                            invalidateIntent();
                         }
                     }
 
                     @Override
                     public void onFailure(Call<AccessCredentials> call, Throwable t) {
                         progressBar.setVisibility(View.INVISIBLE);
-                        invalidateIntent();
                         showErrorDialog(MainActivity.this, "Make sure you have active internet service.", Integer.valueOf(null));
                     }
                 });
@@ -236,13 +214,11 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.INVISIBLE);
                     showErrorDialog(MainActivity.this, response.message(), response.code());
                 }
-                invalidateIntent();
             }
 
             @Override
             public void onFailure(Call<BCard> call, Throwable t) {
                 progressBar.setVisibility(View.INVISIBLE);
-                invalidateIntent();
                 showErrorDialog(MainActivity.this, "Make sure you have active internet service.", Integer.valueOf(null));
             }
         });
