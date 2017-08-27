@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int RC_SIGN_IN = 7861;
     private DatabaseReference databaseReference;
-    private FirebaseDatabase firebaseDatabase;
     private Retrofit retrofit;
     private RecyclerView bcardsRecyclerView;
     private ProgressBar progressBar;
@@ -54,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setupUi();
         setSupportActionBar(toolbar);
-        firebaseDatabase = FirebaseDatabase.getInstance();
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         setupRecyclerViewAdapter(databaseReference);
 
