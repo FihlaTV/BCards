@@ -27,6 +27,9 @@ public class BCard {
     @Expose
     private String id;
 
+    public BCard() {
+    }
+
     public BCard(String firstName, String lastName, String emailAddress, String headline, String pictureUrl, String publicProfileUrl) {
         this.firstName = firstName;
         this.lastName = lastName;

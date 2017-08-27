@@ -7,6 +7,7 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,7 +17,11 @@ import android.widget.ProgressBar;
 import com.dharanaditya.bcards.api.LinkedInService;
 import com.dharanaditya.bcards.model.AccessCredentials;
 import com.dharanaditya.bcards.model.BCard;
+import com.dharanaditya.bcards.ui.BCardViewHolder;
 import com.dharanaditya.bcards.ui.TestAdapter;
+import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,35 +33,51 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
+    // TODO Remove Log TAG Before open sourcing
     private static final String TAG = MainActivity.class.getSimpleName();
+    DatabaseReference reference;
     private Retrofit retrofit;
-    private RecyclerView bcardsList;
+    private RecyclerView bcardsRecyclerView;
     private ProgressBar progressBar;
+    private FirebaseRecyclerAdapter<BCard, BCardViewHolder> bCardFirebaseAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bcardsList = (RecyclerView) findViewById(R.id.rv_bcards_list);
-        bcardsList.setLayoutManager(new LinearLayoutManager(this));
-        progressBar = (ProgressBar) findViewById(R.id.pb_loding);
+        setupUi();
+
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        reference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
+
+        setupRecyclerViewAdapter(reference);
+
 //        TODO Authenticate User
+    }
+
+    private void setupUi() {
+        bcardsRecyclerView = (RecyclerView) findViewById(R.id.rv_bcards_list);
+        bcardsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        progressBar = (ProgressBar) findViewById(R.id.pb_loding);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Intent codeIntent = getIntent();
-        Log.d(TAG, "onResume: " + codeIntent.toString());
-        if (codeIntent.getData() != null && !codeIntent.getData().getQueryParameter("code").isEmpty()) {
-            String code = codeIntent.getData().getQueryParameter("code");
+        Intent redirectIntent = getIntent();
+        if (redirectIntent.getData() != null && !redirectIntent.getData().getQueryParameter("code").isEmpty()) {
+            String code = redirectIntent.getData().getQueryParameter("code");
+            Log.d(TAG, "onResume: Code -> " + code);
+            if (!code.isEmpty())
+                addBCard(code);
         }
     }
 
-    private void invalidateIntent() {
-        getIntent().setData(null);
-        getIntent().setAction("");
+    private void addBCard(String code) {
+        getAccessToken(code);
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -73,13 +94,45 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void setupRecyclerViewAdapter(final DatabaseReference reference) {
+        bCardFirebaseAdapter = new FirebaseRecyclerAdapter<BCard, BCardViewHolder>(
+                BCard.class, R.layout.bcard_list_item, BCardViewHolder.class, reference
+        ) {
+            @Override
+            protected void populateViewHolder(BCardViewHolder viewHolder, BCard model, int position) {
+                viewHolder.bind(model.getFirstName(), model.getLastName(), model.getEmailAddress(), model.getHeadline(), model.getPictureUrl());
+                viewHolder.itemView.setTag(position);
+            }
+        };
+
+        bcardsRecyclerView.setAdapter(bCardFirebaseAdapter);
+
+        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                int pos = (int) viewHolder.itemView.getTag();
+                bCardFirebaseAdapter.getRef(pos).removeValue();
+            }
+        }).attachToRecyclerView(bcardsRecyclerView);
+    }
+
+    private void invalidateIntent() {
+        getIntent().setData(null);
+        getIntent().setAction("");
+    }
+
     void testRecyclerView() {
         List<BCard> bCards = new ArrayList<>();
         bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
         bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
         bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "", ""));
         TestAdapter testAdapter = new TestAdapter(bCards, this);
-        bcardsList.setAdapter(testAdapter);
+        bcardsRecyclerView.setAdapter(testAdapter);
     }
 
     public void requestAuthCode(View view) {
@@ -112,8 +165,8 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(Call<AccessCredentials> call, Response<AccessCredentials> response) {
                         if (response.isSuccessful()) {
                             String token = response.body().getAccessToken();
-                            fetchBCardData(token);
                             Log.d(TAG, "onResponse: Token -> " + token);
+                            fetchBCardData(token);
                         } else {
 //                            TODO Handle
                         }
@@ -139,11 +192,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(Call<BCard> call, Response<BCard> response) {
-                Log.d(TAG, "onResponse: " + call.request().headers().toString());
-                Log.d(TAG, "onResponse: " + response.code());
                 if (response.isSuccessful()) {
-                    progressBar.setVisibility(View.INVISIBLE);
                     Log.d(TAG, "onResponse: BCard -> " + response.body().toString());
+                    progressBar.setVisibility(View.INVISIBLE);
+                    reference.push().setValue(response.body());
+                    // TODO notify User
                 } else {
 //                    TODO Handle
                 }

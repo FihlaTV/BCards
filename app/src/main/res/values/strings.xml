@@ -6,4 +6,5 @@
     <string name="client_id">816dfsm481zdzf</string>
     <string name="client_secret">RJKB2yNH3dIsbQXM</string>
     <string name="response_type">code</string>
+    <string name="firebase_db_test_node">test_bcards</string>
 </resources>
