@@ -51,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate: ");
         setContentView(R.layout.activity_main);
         setupUi();
         setSupportActionBar(toolbar);
@@ -82,10 +81,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        Log.d(TAG, "onResume: " + intent.toString());
         if (intent.getData() != null && !intent.getData().getQueryParameter("code").isEmpty()) {
             String code = intent.getData().getQueryParameter("code");
-            Log.d(TAG, "onResume: Code -> " + code);
             if (!code.isEmpty())
                 addBCard(code);
             else
@@ -108,7 +105,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_signout:
-//                TODO Handle Firebase Sign Out
         }
         return super.onOptionsItemSelected(item);
     }
@@ -134,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                int pos = (int) viewHolder.itemView.getTag();
+                int pos = viewHolder.getAdapterPosition();
                 bCardFirebaseAdapter.getRef(pos).removeValue();
             }
         }).attachToRecyclerView(bcardsRecyclerView);
@@ -181,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(Call<AccessCredentials> call, Response<AccessCredentials> response) {
                         if (response.isSuccessful() && response.code() == 200) {
                             String token = response.body().getAccessToken();
-                            Log.d(TAG, "onResponse: Token -> " + token);
                             fetchBCardData(token);
                         } else {
                             progressBar.setVisibility(View.INVISIBLE);
@@ -211,7 +206,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<BCard> call, Response<BCard> response) {
                 if (response.isSuccessful()) {
-                    Log.d(TAG, "onResponse: BCard -> " + response.body().toString());
                     progressBar.setVisibility(View.INVISIBLE);
                     databaseReference.push().setValue(response.body());
                     // TODO notify User
