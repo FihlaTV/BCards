@@ -1,9 +1,12 @@
 package com.dharanaditya.bcards;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -48,14 +51,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: ");
         setContentView(R.layout.activity_main);
         setupUi();
         setSupportActionBar(toolbar);
-        if (firebaseDatabase == null) {
+        if (firebaseDatabase == null && databaseReference == null) {
+            Log.d(TAG, "onCreate: Firebase Peristance");
+            FirebaseDatabase.getInstance().setPersistenceEnabled(true);
             firebaseDatabase = FirebaseDatabase.getInstance();
-            firebaseDatabase.setPersistenceEnabled(true);
+            databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         }
-        databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         setupRecyclerViewAdapter(databaseReference);
 
 //        TODO Authenticate User
@@ -72,12 +77,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Intent redirectIntent = getIntent();
-        if (redirectIntent.getData() != null && !redirectIntent.getData().getQueryParameter("code").isEmpty()) {
-            String code = redirectIntent.getData().getQueryParameter("code");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "onResume: " + intent.toString());
+        if (intent.getData() != null && !intent.getData().getQueryParameter("code").isEmpty()) {
+            String code = intent.getData().getQueryParameter("code");
             Log.d(TAG, "onResume: Code -> " + code);
             if (!code.isEmpty())
                 addBCard(code);
+            else
+                showErrorDialog(MainActivity.this, "Cannot fetch Authentication Credentials", Integer.valueOf(null));
         }
     }
 
@@ -133,15 +145,6 @@ public class MainActivity extends AppCompatActivity {
         getIntent().setAction("");
     }
 
-    void testRecyclerView() {
-        List<BCard> bCards = new ArrayList<>();
-        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
-        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
-        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "", ""));
-        TestAdapter testAdapter = new TestAdapter(bCards, this);
-        bcardsRecyclerView.setAdapter(testAdapter);
-    }
-
     public void requestAuthCode(View view) {
         if (NetworkUtils.isConnected(getApplicationContext())) {
             Uri requestUrl = Uri.parse(LinkedInService.REQUEST_AUTH_CODE_URL)
@@ -165,7 +168,9 @@ public class MainActivity extends AppCompatActivity {
                 .baseUrl(LinkedInService.REQUEST_ACCESS_TOKEN_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+
         LinkedInService linkedInService = retrofit.create(LinkedInService.class);
+
         linkedInService.getAccessToken(getString(R.string.grant_type),
                 code,
                 getString(R.string.redirect_url),
@@ -174,12 +179,14 @@ public class MainActivity extends AppCompatActivity {
                 .enqueue(new Callback<AccessCredentials>() {
                     @Override
                     public void onResponse(Call<AccessCredentials> call, Response<AccessCredentials> response) {
-                        if (response.isSuccessful()) {
+                        if (response.isSuccessful() && response.code() == 200) {
                             String token = response.body().getAccessToken();
                             Log.d(TAG, "onResponse: Token -> " + token);
                             fetchBCardData(token);
                         } else {
-//                            TODO Handle
+                            progressBar.setVisibility(View.INVISIBLE);
+                            showErrorDialog(MainActivity.this, response.message(), response.code());
+                            invalidateIntent();
                         }
                     }
 
@@ -187,11 +194,11 @@ public class MainActivity extends AppCompatActivity {
                     public void onFailure(Call<AccessCredentials> call, Throwable t) {
                         progressBar.setVisibility(View.INVISIBLE);
                         invalidateIntent();
-                        Log.d(TAG, "onFailure: " + call.toString());
-//                        Todo Handle
+                        showErrorDialog(MainActivity.this, "Make sure you have active internet service.", Integer.valueOf(null));
                     }
                 });
     }
+
 
     void fetchBCardData(String token) {
         retrofit = new Retrofit.Builder()
@@ -209,7 +216,8 @@ public class MainActivity extends AppCompatActivity {
                     databaseReference.push().setValue(response.body());
                     // TODO notify User
                 } else {
-//                    TODO Handle
+                    progressBar.setVisibility(View.INVISIBLE);
+                    showErrorDialog(MainActivity.this, response.message(), response.code());
                 }
                 invalidateIntent();
             }
@@ -218,15 +226,38 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(Call<BCard> call, Throwable t) {
                 progressBar.setVisibility(View.INVISIBLE);
                 invalidateIntent();
-                Log.d(TAG, "onFailure: " + call.toString());
-//                TODO Handle
+                showErrorDialog(MainActivity.this, "Make sure you have active internet service.", Integer.valueOf(null));
             }
         });
+    }
+
+    private void showErrorDialog(Context context, String message, int code) {
+        if (message.isEmpty())
+            message = "Sorry for inconvenience caused.\nContact our support team.";
+        new AlertDialog.Builder(context)
+                .setTitle("Error " + Integer.toString(code))
+                .setMessage(message)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.cancel();
+                    }
+                })
+                .show();
     }
 
     @NonNull
     private String getBearerToken(String token) {
         return "Bearer " + token;
+    }
+
+    void testRecyclerView() {
+        List<BCard> bCards = new ArrayList<>();
+        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
+        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "https://media.licdn.com/mpr/mprx/0_0k9zITCg3oGCNW1q9z2v8CHykwTx-sDZx8CUSqcg34GOBo8M1zaR_PfyiWwiN4OZUQCR_vupWVhYlOHknc1div3r2Vh0lOXZ1c19HNqjFRzPUH0XxQ5ZehV2u7Vf4OPWsNBJ76WAGNh", ""));
+        bCards.add(new BCard("Dharan", "Aditya", "dharan.aditya@gmail.com", "I love to code", "", ""));
+        TestAdapter testAdapter = new TestAdapter(bCards, this);
+        bcardsRecyclerView.setAdapter(testAdapter);
     }
 
 
