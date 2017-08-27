@@ -40,6 +40,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
     // TODO Remove Log TAG Before open sourcing
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int RC_SIGN_IN = 7861;
     private DatabaseReference databaseReference;
     private FirebaseDatabase firebaseDatabase;
     private Retrofit retrofit;
@@ -52,14 +53,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, "onCreate: " + getIntent().toString());
         setupUi();
         setSupportActionBar(toolbar);
-        if (firebaseDatabase == null && databaseReference == null) {
+        if (FirebaseDatabase.getInstance() == null) {
             Log.d(TAG, "onCreate: Firebase Peristance");
             FirebaseDatabase.getInstance().setPersistenceEnabled(true);
-            firebaseDatabase = FirebaseDatabase.getInstance();
-            databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         }
+        firebaseDatabase = FirebaseDatabase.getInstance();
+        databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
         setupRecyclerViewAdapter(databaseReference);
 
 //        TODO Authenticate User
@@ -76,11 +78,30 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+//        TODO
+//        handleIntent(getIntent());
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+//        TODO
+        Log.d(TAG, "onNewIntent: " + intent.toString());
+        handleIntent(intent);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_SIGN_IN) {
+            if (resultCode == RESULT_OK) {
+                handleIntent(data);
+            }
+        }
+
+    }
+
+    private void handleIntent(Intent intent) {
         if (intent.getData() != null && !intent.getData().getQueryParameter("code").isEmpty()) {
             String code = intent.getData().getQueryParameter("code");
             if (!code.isEmpty())
@@ -149,9 +170,11 @@ public class MainActivity extends AppCompatActivity {
                     .appendQueryParameter(LinkedInService.PARAM_CLIENT_ID, getString(R.string.client_id))
                     .appendQueryParameter(LinkedInService.PARAM_REDIRECT_URL, getString(R.string.redirect_url))
                     .build();
-            Intent openBrowser = new Intent(Intent.ACTION_VIEW, requestUrl);
+//            TODO             Intent openBrowser = new Intent(Intent.ACTION_VIEW, requestUrl);
+            Intent openBrowser = new Intent(MainActivity.this, WebViewActivity.class);
+            openBrowser.setData(requestUrl);
             if (openBrowser.resolveActivity(getPackageManager()) != null) {
-                startActivity(openBrowser);
+                startActivityForResult(openBrowser, RC_SIGN_IN);
             }
         } else {
             Toast.makeText(this, "Please Connect to the Internet", Toast.LENGTH_SHORT).show();

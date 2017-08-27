@@ -20,7 +20,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!--TODO : Add Intent Filter to Catch the API Call BACK-->
+            <!-- TODO : Add Intent Filter to Catch the API Call BACK -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -33,6 +33,7 @@
                     android:scheme="http" />
             </intent-filter>
         </activity>
+        <activity android:name=".WebViewActivity"></activity>
     </application>
 
 </manifest>
