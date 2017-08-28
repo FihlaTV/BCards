@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.webkit.CookieManager;
+import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.ProgressBar;
@@ -39,7 +41,12 @@ public class WebViewActivity extends AppCompatActivity implements LinkedinWebCli
     // clear session data to ensure end user security and new login prompt every time the user add bcard
     private void clearSessionData() {
         webView.clearHistory();
-        CookieManager.getInstance().removeAllCookie();
+        CookieManager.getInstance().removeAllCookies(new ValueCallback<Boolean>() {
+            @Override
+            public void onReceiveValue(Boolean aBoolean) {
+                Log.i(TAG, "Removed all session cookies = [" + aBoolean + "]");
+            }
+        });
     }
 
     @Override
