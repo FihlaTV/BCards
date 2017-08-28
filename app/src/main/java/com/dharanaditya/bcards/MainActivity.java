@@ -12,6 +12,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,11 +24,16 @@ import com.dharanaditya.bcards.model.AccessCredentials;
 import com.dharanaditya.bcards.model.BCard;
 import com.dharanaditya.bcards.ui.BCardViewHolder;
 import com.dharanaditya.bcards.ui.TestAdapter;
+import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import retrofit2.Call;
@@ -39,7 +45,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
     // TODO Remove Log TAG Before open sourcing
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final int RC_SIGN_IN = 7861;
+    private static final int RC_SIGN_IN = 3003;
+    private static final int RC_GET_CODE = 7007;
     private DatabaseReference databaseReference;
     private Retrofit retrofit;
     private RecyclerView bcardsRecyclerView;
@@ -53,11 +60,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setupUi();
         setSupportActionBar(toolbar);
-        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
-        databaseReference = firebaseDatabase.getReference(getString(R.string.firebase_db_test_node));
-        setupRecyclerViewAdapter(databaseReference);
 
-//        TODO Authenticate User
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+        if (firebaseAuth.getCurrentUser() != null) {
+            populateUi();
+        } else {
+            signIn();
+        }
     }
 
     private void setupUi() {
@@ -66,6 +75,14 @@ public class MainActivity extends AppCompatActivity {
         progressBar = (ProgressBar) findViewById(R.id.pb_loding);
         toolbar = (Toolbar) findViewById(R.id.tb_main_toolbar);
 
+    }
+
+    private void populateUi() {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        Toast.makeText(this, "Welcome " + firebaseUser.getDisplayName(), Toast.LENGTH_SHORT).show();
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        databaseReference = firebaseDatabase.getReference(firebaseUser.getUid());
+        setupRecyclerViewAdapter(databaseReference);
     }
 
     @Override
@@ -77,12 +94,48 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_SIGN_IN) {
+        if (requestCode == RC_GET_CODE) {
             if (resultCode == RESULT_OK) {
                 handleIntent(data);
             }
         }
+        if (requestCode == RC_SIGN_IN) {
+            if (resultCode == RESULT_OK) {
+                IdpResponse response = IdpResponse.fromResultIntent(data);
+                populateUi();
+            }
+        }
+    }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_signout:
+                FirebaseAuth.getInstance().signOut();
+                signIn();
+                Log.d(TAG, "onOptionsItemSelected: Reached");
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void signIn() {
+        startActivityForResult(
+                AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setIsSmartLockEnabled(false)
+                        .setAvailableProviders(Arrays.asList(
+                                new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
+                                new AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build()
+                        ))
+                        .build(), RC_SIGN_IN
+        );
     }
 
     private void handleIntent(Intent intent) {
@@ -98,22 +151,7 @@ public class MainActivity extends AppCompatActivity {
     private void addBCard(String code) {
         getAccessToken(code);
     }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_signout:
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
+    
     private void setupRecyclerViewAdapter(final DatabaseReference reference) {
         bCardFirebaseAdapter = new FirebaseRecyclerAdapter<BCard, BCardViewHolder>(
                 BCard.class, R.layout.bcard_list_item, BCardViewHolder.class, reference
@@ -153,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
             Intent openBrowser = new Intent(MainActivity.this, WebViewActivity.class);
             openBrowser.setData(requestUrl);
             if (openBrowser.resolveActivity(getPackageManager()) != null) {
-                startActivityForResult(openBrowser, RC_SIGN_IN);
+                startActivityForResult(openBrowser, RC_GET_CODE);
             }
         } else {
             Toast.makeText(this, "Please Connect to the Internet", Toast.LENGTH_SHORT).show();
