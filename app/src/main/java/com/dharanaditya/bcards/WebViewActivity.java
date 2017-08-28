@@ -1,37 +1,38 @@
 package com.dharanaditya.bcards;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ProgressBar;
 
 public class WebViewActivity extends AppCompatActivity {
 
     private static final String TAG = WebViewActivity.class.getSimpleName();
     private WebView webView;
-    private WebSettings webSettings;
-    private WebViewClient client;
+    private ProgressBar progressBar;
     private Uri data;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_view);
-
         webView = (WebView) findViewById(R.id.wv_login_page);
+        progressBar = (ProgressBar) findViewById(R.id.pb_webpage_loading);
         // Clear previous session data
         clearSessionData();
         // Setup web client
-        client = new WebViewClient();
         // get instance of websittig and enable js
-        webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
+        WebSettings webSettings = webView.getSettings();
+//        webSettings.setJavaScriptEnabled(true);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -57,6 +58,19 @@ public class WebViewActivity extends AppCompatActivity {
                 finish();
                 return true;
             }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                progressBar.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                progressBar.setVisibility(View.INVISIBLE);
+            }
+
         });
         // get URL from Intent and load the webpage in webview
         if (getIntent() != null && getIntent().getData() != null) {
@@ -66,15 +80,8 @@ public class WebViewActivity extends AppCompatActivity {
 
     // clear session data to ensure end user security and new login prompt every time the user add bcard
     private void clearSessionData() {
-        webView.clearCache(true);
         webView.clearHistory();
-        CookieManager.getInstance().removeSessionCookie();
         CookieManager.getInstance().removeAllCookie();
     }
 
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finish();
-    }
 }
