@@ -134,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
                                 new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
                                 new AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build()
                         ))
+                        .setTheme(R.style.AuthTheme)
                         .build(), RC_SIGN_IN
         );
     }
