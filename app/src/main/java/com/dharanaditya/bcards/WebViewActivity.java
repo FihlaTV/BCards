@@ -1,24 +1,20 @@
 package com.dharanaditya.bcards;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 
-public class WebViewActivity extends AppCompatActivity {
+import com.dharanaditya.bcards.api.LinkedinWebClient;
+
+public class WebViewActivity extends AppCompatActivity implements LinkedinWebClient.OnTokenFetchListner {
 
     private static final String TAG = WebViewActivity.class.getSimpleName();
     private WebView webView;
-    private ProgressBar progressBar;
     private Uri data;
 
     @Override
@@ -26,52 +22,14 @@ public class WebViewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_view);
         webView = (WebView) findViewById(R.id.wv_login_page);
-        progressBar = (ProgressBar) findViewById(R.id.pb_webpage_loading);
-        // Clear previous session data
-        clearSessionData();
+        ProgressBar progressBar = (ProgressBar) findViewById(R.id.pb_webpage_loading);
         // Setup web client
         // get instance of websittig and enable js
         WebSettings webSettings = webView.getSettings();
 //        webSettings.setJavaScriptEnabled(true);
 
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                // TODO Hack the logic
-                return !url.contains("www.linkedin.com") && shouldOverrideUrlLoading(url);
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-//                TODO Hack the logic -> it return false for all other site, but returns true when url is redirect url
-                return !request.getUrl().getHost().equals("www.linkedin.com") && shouldOverrideUrlLoading(uri.toString());
-            }
-
-            private boolean shouldOverrideUrlLoading(final String url) {
-                Log.d(TAG, "shouldOverrideUrlLoading: " + url);
-                clearSessionData();
-                data = Uri.parse(url);
-                Intent result = new Intent();
-                result.setData(data);
-                setResult(RESULT_OK, result);
-                finish();
-                return true;
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-                progressBar.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                progressBar.setVisibility(View.INVISIBLE);
-            }
-
-        });
+        LinkedinWebClient linkedinWebClient = new LinkedinWebClient(progressBar, this);
+        webView.setWebViewClient(linkedinWebClient);
         // get URL from Intent and load the webpage in webview
         if (getIntent() != null && getIntent().getData() != null) {
             webView.loadUrl(getIntent().getData().toString());
@@ -84,4 +42,12 @@ public class WebViewActivity extends AppCompatActivity {
         CookieManager.getInstance().removeAllCookie();
     }
 
+    @Override
+    public void onTokenFetch(Uri data) {
+        clearSessionData();
+        Intent result = new Intent();
+        result.setData(data);
+        setResult(RESULT_OK, result);
+        finish();
+    }
 }
